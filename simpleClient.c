@@ -33,7 +33,7 @@ void get_file(char *fileName){
                 char buf[100];
                 while((len = recv(sock, buf, sizeof(buf), 0)) > 0){
                         write(fp, buf, strlen(buf));
-                        printf("RECVD : %d bytes  \nbuff : %s\n",strlen(buf), buf);
+                        printf("RECVD : %ld bytes  \nbuff : %s\n",strlen(buf), buf);
                         if (len < sizeof(buf)){
                                 break;
                         }
@@ -83,7 +83,7 @@ char **get_tokens(char *line){
 
 int parseInput(char *ip){
         ip[strcspn(ip, "\r\n")] = 0;
-        printf("Parse Input : %s SIZE : %d \n", ip, strlen(ip));
+        printf("Parse Input : %s SIZE : %ld \n", ip, strlen(ip));
         if(strlen(ip) < 2){
                 return 0;
         }

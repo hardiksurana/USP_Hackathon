@@ -16,7 +16,10 @@ void *new_connection_handler(void *);
 int parseInput(char *);
 char **get_tokens(char *);
 int is_special(char);
+void get_file(char *);
 
+
+int sock;
 int main(int argc , char *argv[])
 {
     int socket_desc , client_sock , c , *new_sock;
@@ -96,7 +99,7 @@ int main(int argc , char *argv[])
 void *new_connection_handler(void *socket_desc)
 {
     //Get the socket descriptor
-    int sock = *(int*)socket_desc;
+    sock = *(int*)socket_desc;
     int read_size;
     char *message , client_message[2000];
 
@@ -160,14 +163,33 @@ int parseInput(char *ip){
                 chdir(tokens[1]);
                 return 0;
         } else if ( strcmp(tokens[0], "get")==0){
+                get_file(tokens[1]);
                 return 0;
         } else if ( strcmp(tokens[0], "send")==0){
+
                 return 0;
         } else if( strcmp(tokens[0], "ctrl+c")==0){
                 printf("Clinet disconnected\n");
                 return 0;
         }
         return 1;
+}
+
+void get_file(char *fileName){
+        FILE *fp = fopen(fileName, "r");
+        if(!fp){
+                char *msg = "Could not find File\n";
+                printf("%s\n", msg);
+                write(sock , msg , strlen(msg));
+        } else {
+                char buf[100];
+                while(fread(buf, 1, sizeof buf, fp)>0){
+                        printf("SENT : %d bytes\n",strlen(buf));
+                        write(sock , buf , strlen(buf));
+                }
+                fclose(fp);
+                write(sock , "\n" , strlen("\n"));
+        }
 }
 
 char **get_tokens(char *line){

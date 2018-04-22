@@ -1,16 +1,23 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdint.h>
+#include<stdio.h>
+#include<string.h>    //strlen
+#include<stdlib.h>    //strlen
+#include<sys/socket.h>
+#include<arpa/inet.h> //inet_addr
+#include<unistd.h>    //write
+#include<pthread.h> //for thread
+#include<signal.h>
+
+#include "clientfuncs.h"
 
 int main(int argc , char *argv[])
 {
-    int sock;
+
     struct sockaddr_in server;
     char message[1000] , server_reply[2000];
     int len;
+    if( signal(SIGINT, sighandler) < 0 ){
+            printf("Could Not Set Signal Handler\n");
+    }
 
     //Create socket
     sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -20,9 +27,9 @@ int main(int argc , char *argv[])
     }
     puts("Socket created");
 
-    server.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server.sin_addr.s_addr = inet_addr(argv[1]);
     server.sin_family = AF_INET;
-    server.sin_port = htons( 8888 );
+    server.sin_port = htons( atoi(argv[2]) );
 
     //Connect to remote server
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
@@ -31,14 +38,14 @@ int main(int argc , char *argv[])
         return 1;
     }
 
-    puts("Connected\n");
+    puts("-----------------------Connected-------------------------------\n");
 
     //keep communicating with server
     while((len = recv(sock, server_reply, sizeof(server_reply), 0)) > 0)
     {
-        printf("Server reply: %.*s", len, server_reply);
+        printf("\n%.*s\n", len, server_reply);
 
-        printf("Enter message : ");
+        printf(">> ");
         if (fgets(message, sizeof(message), stdin) == NULL)
             break;
 

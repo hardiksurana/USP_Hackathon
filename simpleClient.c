@@ -32,13 +32,15 @@ void get_file(char *fileName){
                 int len;
                 char buf[100];
                 while((len = recv(sock, buf, sizeof(buf), 0)) > 0){
-                        write(fp, buf, strlen(buf));
-                        printf("RECVD : %ld bytes  \nbuff : %s\n",strlen(buf), buf);
                         if (len < sizeof(buf)){
+                                buf[strlen(buf)] = 0;
+                                write(fp, buf, strlen(buf));
                                 break;
                         }
+                        write(fp, buf, sizeof(buf));
+                        printf("RECVD : %d bytes  \nbuff : %s\n",strlen(buf), buf);
+
                 }
-                printf("Came here\n");
                 close(fp);
                 write(sock, "\n", strlen("\n"));
         }
@@ -101,18 +103,18 @@ int parseInput(char *ip){
 
 
 
-int main(int argc, char *argv[])
+int main(int argc , char *argv[])
 {
 
     struct sockaddr_in server;
-    char message[1000], server_reply[2000];
+    char message[1000] , server_reply[2000];
     int len;
     if( signal(SIGINT, sighandler) < 0 ){
             printf("Could Not Set Signal Handler\n");
     }
 
     //Create socket
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    sock = socket(AF_INET , SOCK_STREAM , 0);
     if (sock == -1)
     {
         printf("Could not create socket");
@@ -124,7 +126,7 @@ int main(int argc, char *argv[])
     server.sin_port = htons( atoi(argv[2]) );
 
     //Connect to remote server
-    if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
+    if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
     {
         perror("connect failed. Error");
         return 1;
@@ -133,7 +135,7 @@ int main(int argc, char *argv[])
     puts("-----------------------Connected-------------------------------\n");
 
     //keep communicating with server
-    while ((len = recv(sock, server_reply, sizeof(server_reply), 0)) > 0)
+    while((len = recv(sock, server_reply, sizeof(server_reply), 0)) > 0)
     {
         printf("\n%.*s\n", len, server_reply);
 
@@ -142,7 +144,7 @@ int main(int argc, char *argv[])
             break;
 
         //Send some data
-        if (send(sock, message, strlen(message), 0) < 0)
+        if( send(sock , message , strlen(message) , 0) < 0)
         {
             puts("Send failed");
             return 1;

@@ -111,19 +111,14 @@ void *new_connection_handler(void *socket_desc)
     {
         //Send the message back to client
         FILE *stream = popen(client_message, "r");
-        dprintf(1, "Stream : %d\n", stream);
         char buf[1000];
         while (fgets(buf, sizeof(buf), stream) != 0) {
-            dprintf(1, "Fgets output : %s\n", buf);
             write(sock , buf , strlen(buf));
         }
         pclose(stream);
 
-        // write(sock , client_message , strlen(client_message));
     }
-
-
-
+    
     if(read_size == 0)
     {
         printf("Client disconnected\n");

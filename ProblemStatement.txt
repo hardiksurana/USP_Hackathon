@@ -1,0 +1,6 @@
+Problem Statement : Telnet Application – Create an application which can telnet into servers across the internet and run basic commands.
+Goals : 
+	1. Create a client server model to facilitate execution of commands on a remote machine.
+	2. Look for and handle signals, also deliver the appropiate signals to the remote server.
+	3. Handle multiple sessions.
+	4. Send and receive files.

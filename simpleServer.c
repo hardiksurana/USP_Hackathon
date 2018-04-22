@@ -5,6 +5,7 @@
 #include<arpa/inet.h> //inet_addr
 #include<unistd.h>    //write
 #include<pthread.h> //for thread
+#include<signal.h>
 
 
  #define MAX_CLIENTS 5
@@ -12,7 +13,13 @@
 
 //the thread function
 void *new_connection_handler(void *);
+int parseInput(char *);
+char **get_tokens(char *);
+int is_special(char);
+void get_file(char *);
 
+
+int sock;
 int main(int argc , char *argv[])
 {
     int socket_desc , client_sock , c , *new_sock;
@@ -92,7 +99,7 @@ int main(int argc , char *argv[])
 void *new_connection_handler(void *socket_desc)
 {
     //Get the socket descriptor
-    int sock = *(int*)socket_desc;
+    sock = *(int*)socket_desc;
     int read_size;
     char *message , client_message[2000];
 
@@ -110,15 +117,25 @@ void *new_connection_handler(void *socket_desc)
     while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
     {
         //Send the message back to client
-        FILE *stream = popen(client_message, "r");
-        char buf[1000];
-        while (fgets(buf, sizeof(buf), stream) != 0) {
-            write(sock , buf , strlen(buf));
+        printf("Client CMD: %s\n", client_message);
+        int paresedMessage = parseInput(client_message);
+        if(paresedMessage == 1){
+                char data[100000];
+                char buf[100];
+                memset(data, 0, sizeof(data));
+                memset(buf, 0, sizeof(buf));
+                FILE *stream = popen(client_message, "r");
+                while (fgets(buf, sizeof(buf), stream) != 0) {
+                        strcat(data, buf);
+                }
+                pclose(stream);
+                write(sock , data , strlen(data));
+
         }
-        pclose(stream);
+        write(sock , "\n" , strlen("\n"));
 
     }
-    
+
     if(read_size == 0)
     {
         printf("Client disconnected\n");
@@ -133,4 +150,92 @@ void *new_connection_handler(void *socket_desc)
     free(socket_desc);
 
     return 0;
+}
+
+int parseInput(char *ip){
+        ip[strcspn(ip, "\r\n")] = 0;
+        printf("Parse Input : %s SIZE : %d \n", ip, strlen(ip));
+        if(strlen(ip) < 2){
+                return 0;
+        }
+        char **tokens = get_tokens(ip);
+        if (strcmp(tokens[0], "cd")==0){
+                chdir(tokens[1]);
+                return 0;
+        } else if ( strcmp(tokens[0], "get")==0){
+                get_file(tokens[1]);
+                return 0;
+        } else if ( strcmp(tokens[0], "send")==0){
+
+                return 0;
+        } else if( strcmp(tokens[0], "ctrl+c")==0){
+                printf("Clinet disconnected\n");
+                return 0;
+        }
+        return 1;
+}
+
+void get_file(char *fileName){
+        FILE *fp = fopen(fileName, "r");
+        if(!fp){
+                char *msg = "Could not find File\n";
+                printf("%s\n", msg);
+                write(sock , msg , strlen(msg));
+        } else {
+                char buf[100];
+                while(fread(buf, 1, sizeof buf, fp)>0){
+                        printf("SENT : %d bytes\n",strlen(buf));
+                        write(sock , buf , strlen(buf));
+                }
+                fclose(fp);
+                write(sock , "\n" , strlen("\n"));
+        }
+}
+
+char **get_tokens(char *line){
+
+        char *copyOfLine = strdup(line);
+        char **tokens;
+
+        tokens = malloc(sizeof(char *)*10);
+        memset(tokens, 0, sizeof(tokens));
+
+        char subbuff[20];
+
+        int llen = strlen(copyOfLine);
+        int numTokens = 0;
+        int i =0, j=0;
+        while(i < llen){
+                if(is_special(copyOfLine[j])) {
+                        if (copyOfLine[j] == ' ') {
+                                memcpy( subbuff, copyOfLine+i, j-i);
+                                subbuff[j-i] = '\0';
+                                tokens[numTokens] = strdup(subbuff);
+                                numTokens++;
+                                i=j+1;
+                        }
+                }
+                if(j == llen){
+                        memcpy( subbuff, copyOfLine+i, j-i);
+                        subbuff[j-i] = '\0';
+                        tokens[numTokens] = strdup(subbuff);
+                        numTokens++;
+                        i=j+1;
+                }
+                j++;
+        }
+        tokens[numTokens] = NULL;
+        return tokens;
+}
+
+int is_special(char ch){
+       	if(ch >= 'a' && ch <='z' )
+                return 0;
+        if(ch >= 'A' && ch <= 'Z')
+                return 0;
+        if(ch >= '0' && ch <= '9')
+                return 0;
+        if(ch == '.' || ch == '-' )
+                return 0;
+        return ch;
 }

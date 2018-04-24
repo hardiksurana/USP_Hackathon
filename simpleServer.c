@@ -1,10 +1,10 @@
 #include<stdio.h>
-#include<string.h>    //strlen
-#include<stdlib.h>    //strlen
+#include<string.h>
+#include<stdlib.h>
 #include<sys/socket.h>
-#include<arpa/inet.h> //inet_addr
-#include<unistd.h>    //write
-#include<pthread.h> //for thread
+#include<arpa/inet.h>
+#include<unistd.h>
+#include<pthread.h>
 #include<signal.h>
 
 
@@ -33,14 +33,11 @@ int main(int argc , char *argv[])
         printf("Could not create socket");
     }
 
-
     //Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons( 8888 );
     bzero (&server.sin_zero, 8);
-
-
 
     //Bind
     if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
@@ -50,38 +47,22 @@ int main(int argc , char *argv[])
         return 1;
     }
 
-
     //Listen
     listen(socket_desc , MAX_CLIENTS);
-
-
-
     //Accept and incoming connection
     printf("Waiting for incoming connections\n");
-
-
-
 
     c = sizeof(struct sockaddr_in);
     while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
     {
         printf("Connection accepted");
-
-
-
         pthread_t thread_id;
-
-
-
 
         if( pthread_create( &thread_id , NULL ,  new_connection_handler , (void*) &client_sock) < 0)
         {
             perror("could not create thread");
             return 1;
         }
-
-
-
      printf("Handler assigned\n");
     }
 
@@ -102,17 +83,7 @@ void *new_connection_handler(void *socket_desc)
     sock = *(int*)socket_desc;
     int read_size;
     char *message , client_message[2000];
-
-
-
-    //Send some messages to the client
-    message = "This is connection handler\n";
-    write(sock , message , strlen(message));
-
-
-    message = "Type something \n";
-    write(sock , message , strlen(message));
-
+    write(sock , "\n" , strlen("\n"));
     //Receive a message from client
     while( (read_size = recv(sock , client_message , 2000 , 0)) > 0 )
     {
@@ -147,14 +118,15 @@ void *new_connection_handler(void *socket_desc)
     }
 
     //Free the socket pointer
-    free(socket_desc);
-
+    if(socket_desc){
+            free(socket_desc);
+    }
     return 0;
 }
 
 int parseInput(char *ip){
         ip[strcspn(ip, "\r\n")] = 0;
-        printf("Parse Input : %s SIZE : %d \n", ip, strlen(ip));
+        printf("Parse Input : %s SIZE : %ld \n", ip, strlen(ip));
         if(strlen(ip) < 2){
                 return 0;
         }
@@ -169,8 +141,8 @@ int parseInput(char *ip){
 
                 return 0;
         } else if( strcmp(tokens[0], "ctrl+c")==0){
-                printf("Clinet disconnected\n");
-                return 0;
+                printf("Connection Terminated\n");
+                exit(0);
         }
         return 1;
 }
@@ -183,9 +155,11 @@ void get_file(char *fileName){
                 write(sock , msg , strlen(msg));
         } else {
                 char buf[100];
+                memset(buf, 0, sizeof(buf));
                 while(fread(buf, 1, sizeof buf, fp)>0){
-                        printf("SENT : %d bytes\n",strlen(buf));
-                        write(sock , buf , strlen(buf));
+                        printf("SENT : %ld bytes\n",strlen(buf));
+                        write(sock , buf , sizeof(buf));
+                        memset(buf, 0, sizeof(buf));
                 }
                 fclose(fp);
         }

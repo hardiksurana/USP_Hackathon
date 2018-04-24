@@ -25,21 +25,25 @@ int is_special(char ch){
 
 void get_file(char *fileName){
         int fp = open(fileName, O_CREAT|O_WRONLY|O_TRUNC, 0644);
+        sleep(1);
         if(!fp){
                 char *msg = "Could not open find File\n";
                 printf("%s\n", msg);
         } else {
                 int len;
-                char buf[100];
+                char buf[10000];
+
+                memset(buf, 0 , sizeof(buf));
                 while((len = recv(sock, buf, sizeof(buf), 0)) > 0){
+
+                        // buf[strcspn(buf, "E^?")] = 0;
                         if (len < sizeof(buf)){
-                                buf[strlen(buf)] = 0;
                                 write(fp, buf, strlen(buf));
                                 break;
+                        } else {
+                                write(fp, buf, strlen(buf));
                         }
-                        write(fp, buf, sizeof(buf));
-                        printf("RECVD : %d bytes  \nbuff : %s\n",strlen(buf), buf);
-
+                        memset(buf, 0 , sizeof(buf));
                 }
                 close(fp);
                 write(sock, "\n", strlen("\n"));
@@ -82,7 +86,6 @@ char **get_tokens(char *line){
         return tokens;
 }
 
-
 int parseInput(char *ip){
         ip[strcspn(ip, "\r\n")] = 0;
         printf("Parse Input : %s SIZE : %ld \n", ip, strlen(ip));
@@ -109,6 +112,7 @@ int main(int argc , char *argv[])
     struct sockaddr_in server;
     char message[1000] , server_reply[2000];
     int len;
+
     if( signal(SIGINT, sighandler) < 0 ){
             printf("Could Not Set Signal Handler\n");
     }

@@ -1,11 +1,13 @@
 #include <stdio.h>
-#include <string.h> //strlen
-#include <stdlib.h> //strlen
+#include <string.h>
+#include <stdlib.h>
 #include <sys/socket.h>
-#include <arpa/inet.h> //inet_addr
-#include <unistd.h>    //write
-#include <pthread.h>   //for thread
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <pthread.h>
 #include <signal.h>
+
+#define MAX_CLIENTS 5
 
 #define MAX_CLIENTS 5
 
@@ -45,7 +47,6 @@ int main(int argc, char *argv[])
 
         //Listen
         listen(socket_desc, MAX_CLIENTS);
-
         //Accept and incoming connection
         printf("Waiting for incoming connections\n");
 
@@ -53,16 +54,14 @@ int main(int argc, char *argv[])
         while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c)))
         {
                 printf("Connection accepted");
-
                 pthread_t thread_id;
 
                 if (pthread_create(&thread_id, NULL, new_connection_handler, (void *)&client_sock) < 0)
                 {
-                        perror("could not create thread");
+                        perror("accept failed");
                         return 1;
                 }
-
-                printf("\nHandler assigned\n");
+                printf("Handler assigned\n");
         }
 
         if (client_sock < 0)
@@ -80,19 +79,12 @@ void *new_connection_handler(void *socket_desc)
         sock = *(int *)socket_desc;
         int read_size;
         char *message, client_message[2000];
-
-        //Send some messages to the client
-        message = "This is connection handler\n";
-        write(sock, message, strlen(message));
-
-        // message = "Type something \n";
-        // write(sock, message, strlen(message));
-
+        write(sock, "\n", strlen("\n"));
         //Receive a message from client
         while ((read_size = recv(sock, client_message, 2000, 0)) > 0)
         {
                 //Send the message back to client
-                // printf("Client CMD: %s\n", client_message);
+                printf("Client CMD: %s\n", client_message);
                 int paresedMessage = parseInput(client_message);
                 if (paresedMessage == 1)
                 {
@@ -105,34 +97,33 @@ void *new_connection_handler(void *socket_desc)
                         {
                                 strcat(data, buf);
                         }
-                        pclose(stream);
-                        write(sock, data, strlen(data));
-                        fflush(stream);
+                        write(sock, "\n", strlen("\n"));
+                        memset(client_message, 0, sizeof(client_message));
                 }
-                write(sock, "\n", strlen("\n"));
-                memset(client_message, 0, sizeof(client_message));
-        }
 
-        if (read_size == 0)
-        {
-                printf("Client disconnected\n");
-                fflush(stdout);
-        }
-        else if (read_size == -1)
-        {
-                perror("recv failed");
-        }
+                if (read_size == 0)
+                {
+                        printf("Client disconnected\n");
+                        fflush(stdout);
+                }
+                else if (read_size == -1)
+                {
+                        perror("recv failed");
+                }
 
-        //Free the socket pointer
-        free(socket_desc);
-
+                //Free the socket pointer
+                if (socket_desc)
+                {
+                        free(socket_desc);
+                }
+        }
         return 0;
 }
 
 int parseInput(char *ip)
 {
         ip[strcspn(ip, "\r\n")] = 0;
-        printf("\nParse Input : %s\nSIZE : %ld \n", ip, strlen(ip));
+        printf("Parse Input : %s SIZE : %ld \n", ip, strlen(ip));
         if (strlen(ip) < 2)
         {
                 return 0;
@@ -155,7 +146,7 @@ int parseInput(char *ip)
         }
         else if (strcmp(tokens[0], "ctrl+c") == 0)
         {
-                printf("Client disconnected. Session terminated.\n");
+                printf("Connection Terminated\n");
                 exit(0);
         }
         return 1;
@@ -173,10 +164,11 @@ void get_file(char *fileName)
         else
         {
                 char buf[100];
-                while (fread(buf, 1, sizeof(buf), fp) > 0)
+                memset(buf, 0, sizeof(buf));
+                while (fread(buf, 1, sizeof buf, fp) > 0)
                 {
                         printf("SENT : %ld bytes\n", strlen(buf));
-                        write(sock, buf, strlen(buf));
+                        write(sock, buf, sizeof(buf));
                         memset(buf, 0, sizeof(buf));
                 }
                 fclose(fp);
